@@ -843,6 +843,10 @@ section .container {
   color: #61dafb;
 }
 
+.portfolio .portfolio-wrap .portfolio-links .sass:hover {
+  color: #ce679a;
+}
+
 .portfolio .portfolio-wrap:hover::before {
   top: 0;
   left: 0;
