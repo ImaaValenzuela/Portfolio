@@ -704,6 +704,10 @@ section .container {
   color: #e44d25;
 }
 
+.portfolio .portfolio-wrap .portfolio-links .java:hover {
+  color: #0073b8
+}
+
 .portfolio .portfolio-wrap .portfolio-links .css:hover {
   color: #379ad6;
 }
