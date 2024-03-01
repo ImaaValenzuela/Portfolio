@@ -12,7 +12,7 @@ body {
 body::before {
   content: "";
   position: fixed;
-  background: #040404 url("../img/bg.jpg") top right no-repeat;
+  background: #040404 url("../img/bg2.jpg") top right no-repeat;
   background-size: cover;
   left: 0;
   right: 0;
@@ -24,6 +24,13 @@ body::before {
 @media (min-width: 1024px) {
   body::before {
     background-attachment: fixed;
+  }
+}
+
+@media (max-width: 1023px) {
+  body::before {
+    background-size: contain;
+    background-position: center;
   }
 }
 
@@ -45,7 +52,6 @@ h5,
 h6 {
   font-family: "Raleway", sans-serif;
 }
-
 /*--------------------------------------------------------------
 # Header
 --------------------------------------------------------------*/
@@ -566,6 +572,9 @@ section .container {
   border: 2px solid #d81c24;
 }
 
+.boton-descargar:hover{
+  color: #fff;
+}
 
 /*--------------------------------------------------------------
 # Portfolio
