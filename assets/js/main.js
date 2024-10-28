@@ -1,183 +1,178 @@
-(function() {
-  "use strict";
+import * as THREE from "three";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { SimplexNoise } from "three/addons/math/SimplexNoise.js";
 
-  const select = (el, all = false) => {
-    el = el.trim();
-    if (all) {
-      return [...document.querySelectorAll(el)];
-    } else {
-      return document.querySelector(el);
-    }
-  };
+console.clear();
 
-  const on = (type, el, listener, all = false) => {
-    let selectEl = select(el, all);
+let scene = new THREE.Scene();
+let camera = new THREE.PerspectiveCamera(
+  45 * 0.4,
+  innerWidth / innerHeight,
+  1,
+  1000
+);
+camera.position.set(1, -5, 8).setLength(21);
+let renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setSize(innerWidth, innerHeight);
+renderer.setClearColor(0x000000, 0);
 
-    if (selectEl) {
-      if (all) {
-        selectEl.forEach(e => e.addEventListener(type, listener));
-      } else {
-        selectEl.addEventListener(type, listener);
+document.body.appendChild(renderer.domElement);
+
+window.addEventListener("resize", (event) => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+let controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.enablePan = false;
+controls.minDistance = controls.getDistance();
+controls.maxDistance = controls.getDistance();
+
+let gu = {
+  time: { value: 0 }
+};
+
+let loader = new GLTFLoader();
+let model = (
+  await loader.loadAsync(
+    "https://threejs.org/examples/models/gltf/LeePerrySmith/LeePerrySmith.glb"
+  )
+).scene.children[0];
+model.position.y = -0.75;
+
+let box = new THREE.Box3().setFromBufferAttribute(
+  model.geometry.attributes.position
+);
+let size = new THREE.Vector3();
+box.getSize(size);
+
+let presets = {
+  transitionLevel: {value: 0.5},
+  black: {value: (() => {
+    let c = document.createElement("canvas");
+    c.width = 1024;
+    c.height = 1024;
+    let ctx = c.getContext("2d");
+
+    let unit = (val) => val * c.height * 0.01;
+
+    ctx.fillStyle = "#222222";
+    ctx.fillRect(0, 0, c.width, c.height);
+
+    ctx.lineCap = "round";
+
+    ctx.strokeStyle = "#ddd";
+    ctx.filter = `blur(${unit(0.5)}px)`;
+
+    let rows = 8;
+    let cols = 4;
+    let colFactor = 0.75;
+    let colAngle = Math.PI / cols;
+    let colAngleHalf = colAngle * 0.5;
+    for (let row = 0; row < rows; row++) {
+      ctx.lineWidth = unit(10 - row) * 0.25;
+      let r = 47 - row * 5;
+      for (let col = 0; col < cols; col++) {
+        ctx.beginPath();
+        let centralAngle = -colAngleHalf - colAngle * col;
+        ctx.arc(
+          unit(50),
+          unit(50),
+          unit(r),
+          centralAngle - colAngleHalf * colFactor,
+          centralAngle + colAngleHalf * colFactor
+        );
+        ctx.stroke();
       }
     }
-  };
+    
+    ctx.fillStyle = "#000000";
+    ctx.beginPath();
+    ctx.moveTo(unit(50), unit(50));
+    ctx.arc(unit(50), unit(50), unit(50), Math.PI * 0.25, Math.PI * 0.75);
+    ctx.fill();
 
-  const scrollto = (el) => {
-    window.scrollTo({
-      top: 0,
-      behavior: 'smooth'
-    });
-  };
+    let tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.center.setScalar(0.5);
+    return tex;
+  })()},
+  neon: {value: (() => {
+    let c = document.createElement("canvas");
+    c.width = 1024;
+    c.height = 1024;
+    let ctx = c.getContext("2d");
 
-  on('click', '.mobile-nav-toggle', function(e) {
-    select('#navbar').classList.toggle('navbar-mobile');
-    this.classList.toggle('bi-list');
-    this.classList.toggle('bi-x');
-  });
+    let unit = (val) => val * c.height * 0.01;
+    
+    let grd = ctx.createLinearGradient(0, 0, 0, c.height);
+    grd.addColorStop(0.25, "#ff00ff");
+    grd.addColorStop(0.5, "#ff88ff");
+    grd.addColorStop(0.75, "#0044ff");
+    grd.addColorStop(1, "#ffff00");
+    
+    ctx.fillStyle = grd;
+    ctx.fillRect(0, 0, c.width, c.height);
+    
+    let tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.center.setScalar(0.5);
+    return tex;
+  })()}
+};
 
-  on('click', '#navbar .nav-link', function(e) {
-    let section = select(this.hash);
-    if (section) {
-      e.preventDefault();
 
-      let navbar = select('#navbar');
-      let header = select('#header');
-      let sections = select('section', true);
-      let navlinks = select('#navbar .nav-link', true);
-
-      navlinks.forEach((item) => {
-        item.classList.remove('active');
-      });
-
-      this.classList.add('active');
-
-      if (navbar.classList.contains('navbar-mobile')) {
-        navbar.classList.remove('navbar-mobile');
-        let navbarToggle = select('.mobile-nav-toggle');
-        navbarToggle.classList.toggle('bi-list');
-        navbarToggle.classList.toggle('bi-x');
-      }
-
-      if (this.hash == '#header') {
-        header.classList.remove('header-top');
-        sections.forEach((item) => {
-          item.classList.remove('section-show');
-        });
-        return;
-      }
-
-      if (!header.classList.contains('header-top')) {
-        header.classList.add('header-top');
-        setTimeout(function() {
-          sections.forEach((item) => {
-            item.classList.remove('section-show');
-          });
-          section.classList.add('section-show');
-        }, 350);
-      } else {
-        sections.forEach((item) => {
-          item.classList.remove('section-show');
-        });
-        section.classList.add('section-show');
-      }
-
-      scrollto(this.hash);
-    }
-  }, true);
-
-  window.addEventListener('load', () => {
-    if (window.location.hash) {
-      let initial_nav = select(window.location.hash);
-
-      if (initial_nav) {
-        let header = select('#header');
-        let navlinks = select('#navbar .nav-link', true);
-
-        header.classList.add('header-top');
-
-        navlinks.forEach((item) => {
-          if (item.getAttribute('href') == window.location.hash) {
-            item.classList.add('active');
-          } else {
-            item.classList.remove('active');
-          }
-        });
-
-        setTimeout(function() {
-          initial_nav.classList.add('section-show');
-        }, 350);
-
-        scrollto(window.location.hash);
-      }
-    }
-  });
-
-  let skilsContent = select('.skills-content');
-  if (skilsContent) {
-    new Waypoint({
-      element: skilsContent,
-      offset: '80%',
-      handler: function(direction) {
-        let progress = select('.progress .progress-bar', true);
-        progress.forEach((el) => {
-          el.style.width = el.getAttribute('aria-valuenow') + '%';
-        });
-      }
-    });
+model.material = new THREE.MeshMatcapMaterial({
+  matcap: presets.black.value,
+  onBeforeCompile: shader => {
+    shader.uniforms.transitionLevel = presets.transitionLevel;
+    shader.uniforms.matcap2 = presets.neon;
+    shader.vertexShader = `
+      varying vec4 vClipPos;
+      ${shader.vertexShader}
+    `.replace(
+      `vViewPosition = - mvPosition.xyz;`,
+      `vViewPosition = - mvPosition.xyz;
+        vClipPos = gl_Position;
+      `
+    );
+    //console.log(shader.vertexShader);
+    shader.fragmentShader = `
+      uniform float transitionLevel;
+      uniform sampler2D matcap2;
+      varying vec4 vClipPos;
+      ${shader.fragmentShader}
+    `.replace(
+      `vec4 matcapColor = texture2D( matcap, uv );`,
+      `
+      vec4 mc1 = texture( matcap, uv );
+      vec4 mc2 = texture( matcap2, uv );
+      
+      vec2 clipUV = (vClipPos.xy / vClipPos.w) * 0.5 + 0.5;
+      
+      vec4 matcapColor = mix(mc1, mc2, smoothstep(transitionLevel-0.1, transitionLevel+0.1, clipUV.y));
+      `
+    );
+    //console.log(shader.fragmentShader);
   }
+});
+scene.add(model);
 
-  window.addEventListener('load', () => {
-    let portfolioContainer = select('.portfolio-container');
-    if (portfolioContainer) {
-      let portfolioIsotope = new Isotope(portfolioContainer, {
-        itemSelector: '.portfolio-item',
-        layoutMode: 'fitRows'
-      });
+let simplex = new SimplexNoise();
 
-      let portfolioFilters = select('#portfolio-flters li', true);
-      let frontendBackendFilters = select('#frontend-backend-filters');
+let clock = new THREE.Clock();
+let t = 0;
 
-      on('click', '#portfolio-flters li', function(e) {
-        e.preventDefault();
-        portfolioFilters.forEach(function(el) {
-          el.classList.remove('filter-active');
-        });
-        this.classList.add('filter-active');
-
-        portfolioIsotope.arrange({
-          filter: this.getAttribute('data-filter')
-        });
-
-        // Ocultar opciones de frontend y backend cuando se selecciona algo diferente a "Desarrollo Web"
-        if (
-          this.getAttribute('data-filter') !== '.filter-web' &&
-          this.getAttribute('data-filter') !== '.filter-frontend' &&
-          this.getAttribute('data-filter') !== '.filter-backend'
-        ) {
-          frontendBackendFilters.style.display = 'none';
-        } else {
-          frontendBackendFilters.style.display = 'flex';
-        }
-      }, true);
-    }
-  });
-
-  // Opciones de Frontend y Backend inicialmente ocultas
-  let frontendBackendFilters = select('#frontend-backend-filters');
-  frontendBackendFilters.style.display = 'none';
-
-  new PureCounter();
-
-    /**
-   * Document Title
-   */
-    let previousTitle = document.title;
-    window.addEventListener('blur', ()=>{
-      previousTitle = document.title;
-      document.title = '¡No te vayas! ¡Vuelve!';
-    });
+renderer.setAnimationLoop(() => {
+  let dt = clock.getDelta();
+  t += dt;
   
-    window.addEventListener('focus', ()=>{
-      document.title = previousTitle;
-    })
-})();
+  let n = simplex.noise(t * 0.25, Math.PI) * 0.5 + 0.5;
+  presets.transitionLevel.value = n;
+  
+  controls.update();
+  renderer.render(scene, camera);
+});
